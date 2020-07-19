@@ -1,36 +1,26 @@
 from room import Room
 from player import Player
-from item import Item, Weapon, Healing
-
-# Declare all items
-
-item = {
-    'sword': Weapon("Sword", "Trusty sword for close range protection.", 2),
-    'bow': Weapon("Bow and Arrow", "Classic bow and arrow used for long range hunting and a weapon.", 5),
-    'healing1': Healing("First aid kit", "Sack filled with bandages, gauze, and ointments to treat wounds", 3),
-    'healing2': Healing("Magic Mushrooms", "Natural remedy that is a magic cure all.", 5),
-    'coins': Item("Pile of Gold", "Pile of gold use for currency to purchase items.")
-}
+from item import Item
 
 # Declare all the rooms
 
 room = {
     'outside':  Room("Outside Cave Entrance",
-                     "North of you, the cave mount beckons", []),
+                     "North of you, the cave mount beckons", Item('flashlight')),
 
     'foyer':    Room("Foyer", """Dim light filters in from the south. Dusty
-passages run north and east.""", []),
+passages run north and east.""", Item('tactical knife')),
 
     'overlook': Room("Grand Overlook", """A steep cliff appears before you, falling
 into the darkness. Ahead to the north, a light flickers in
-the distance, but there is no way across the chasm.""", ['bow']),
+the distance, but there is no way across the chasm.""", Item('Redbull')),
 
     'narrow':   Room("Narrow Passage", """The narrow passage bends here from west
-to north. The smell of gold permeates the air.""", []),
+to north. The smell of gold permeates the air.""", Item('mushrooms')),
 
     'treasure': Room("Treasure Chamber", """You've found the long-lost treasure
 chamber! Sadly, it has already been completely emptied by
-earlier adventurers. The only exit is to the south.""", []),
+earlier adventurers. The only exit is to the south.""", Item('empty satchel')),
 }
 
 
@@ -51,9 +41,11 @@ room['treasure'].s_to = room['narrow']
 
 # Make a new player object that is currently in the 'outside' room.
 
-player = Player(input('Please Enter your name: '), room['outside'], [item['bow'], item['coins']])
-print('Hello, ', player.name)
-print(player.current_room)
+player_name = input("What is your name?\n")
+
+player = Player(player_name, room['outside'])
+
+print(f"\nHello {player_name}!\n")
 
 # Write a loop that:
 #
@@ -66,25 +58,64 @@ print(player.current_room)
 #
 # If the user enters "q", quit the game.
 
-while 1:
-    command = input(">").split(" ")
-    if command == 'q':
-        break
-    elif command[0] in ('n', 's', 'e', 'w'):
-        player.travel(command[0])
-    elif command[0] == 'drop':
-        if(len(command) > 0):
-            if player.drop_item(command[1]):
-                player.current_room.add_item(command[1])
+while True:
+    current_room = player.room
+    player_inventory = [x.name for x in player.inventory] if len(
+        player.inventory) else "Nothing."
+    room_inventory = [x.name for x in current_room.item] if len(
+        current_room.item) else " "
+
+    print(f"\nYou are in the {player.room.room_name} room \n")
+    print(f"{current_room.room_description}\n")
+    print(f"You've found an item, {room_inventory}, keep or leave?\n")
+    print(f"Type: 'keep {room_inventory}' or 'leave {room_inventory}'\n")
+
+    print(f"{player_name} has {player_inventory}.\n")
+
+    move = input(
+        'Select a destination: n, e, w, s? (q to quit): ')
+
+    action = move[0:4]
+    item = move[5:]
+
+    if move == 'n':
+        if current_room.n_to is not None:
+            player.room = current_room.n_to
+            print(f"\nYou have gone north.")
         else:
-            print("No item under that name.")
-    elif command[0] in ('get', 'take'):
-        if(len(command) > 1):
-            if player.current_room.remove_item(command[1]):
-                player.pickup_item(command[1])
+            print(f"\nSorry, path is blocked\n")
+    elif move == 's':
+        if current_room.s_to is not None:
+            player.room = current_room.s_to
+            print(f"\nYou have gone south.")
         else:
-            print("No item under that name.")
-    elif command[0] == 'i':
-        player.show_inventory()
+            print("\nSorry, path is blocked.\n")
+    elif move == 'e':
+        if current_room.e_to is not None:
+            player.room = current_room.e_to
+            print(f"\nYou have gone east.")
+        else:
+            print("\nSorry, path is blocked.\n")
+    elif move == 'w':
+        if current_room.w_to is not None:
+            player.room = current_room.w_to
+            print(f"\nYou have gone west.")
+        else:
+            print("\nSorry, path is blocked.\n")
+
+    elif action == 'keep':
+        item_name_list = [i.name for i in current_room.item]
+        item_index = item_name_list.index(item)
+        player.keep(current_room.item[item_index])
+        current_room.remove_item(item_index)
+
+    elif action == 'leave':
+        item_name_list = [i.name for i in player.inventory]
+        item_index - item_name_list.index(item)
+        current_room.add_item(player.inventory[item_index])
+        player.leave(item_index)
+
+    elif move == 'q':
+        exit()
     else:
-        print("I can't do that", player.name)
+        print('n*Please enter a valid direction. Treasure awaits!*\n')
